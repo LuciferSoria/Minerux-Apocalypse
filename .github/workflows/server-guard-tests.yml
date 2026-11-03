@@ -25,8 +25,10 @@ jobs:
             server-guard/src/main/java/dev/minerux/guard/BetaAccessClient.java \
             server-guard/src/main/java/dev/minerux/guard/LoginAccessGate.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessClientTest.java \
-            server-guard/src/test/java/dev/minerux/guard/BetaAccessContractTest.java
+            server-guard/src/test/java/dev/minerux/guard/BetaAccessContractTest.java \
+            server-guard/src/test/java/dev/minerux/guard/LoginAccessGateTest.java
       - name: Run fail-closed authorization tests
         run: |
           java -cp server-guard/out dev.minerux.guard.BetaAccessClientTest
           java -cp server-guard/out dev.minerux.guard.BetaAccessContractTest
+          java -cp server-guard/out dev.minerux.guard.LoginAccessGateTest
