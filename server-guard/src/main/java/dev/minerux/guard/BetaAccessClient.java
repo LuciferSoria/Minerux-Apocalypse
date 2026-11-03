@@ -49,9 +49,14 @@ public final class BetaAccessClient {
                     .header("Authorization", "Bearer " + token)
                     .timeout(Duration.ofSeconds(6))
                     .GET().build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) return false;
-            return allowedFromJson(response.body());
+            HttpResponse<java.io.InputStream> response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            try (java.io.InputStream stream = response.body()) {
+                if (response.statusCode() != 200) return false;
+                // Bound response consumption before decoding: a compromised backend must not exhaust server memory.
+                byte[] bytes = stream.readNBytes(4097);
+                if (bytes.length > 4096) return false;
+                return allowedFromJson(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+            }
         } catch (IOException | InterruptedException | IllegalArgumentException e) {
             if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             return false;
