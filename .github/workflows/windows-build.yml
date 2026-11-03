@@ -1,0 +1,34 @@
+name: Windows launcher build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/windows-build.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Verify launcher source exists
+        shell: pwsh
+        run: |
+          if (!(Test-Path "main.go")) { throw "Falta launcher/main.go. No se publicará un ejecutable vacío." }
+      - name: Build Windows x64
+        shell: pwsh
+        run: go build -trimpath -ldflags="-s -w -H windowsgui" -o Minerux-Apocalypse-DEV.exe .
+      - name: Upload development build (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minerux-Apocalypse-DEV-NO-FINAL
+          path: launcher/Minerux-Apocalypse-DEV.exe
+          if-no-files-found: error
