@@ -8,6 +8,9 @@ import (
  "path/filepath"
  "syscall"
  "unsafe"
+ "context"
+ "time"
+ "github.com/LuciferSoria/Minerux-Apocalypse/launcher/service"
 )
 
 const (
@@ -18,6 +21,7 @@ const (
  wmCommand = 0x0111
  swShow = 5
  idPlay = 101
+ idStatus = 102
 )
 var (
  user32 = syscall.NewLazyDLL("user32.dll")
@@ -74,10 +78,26 @@ func openOfficialLauncher(hwnd uintptr) {
   alert(hwnd, "No se ha encontrado Minecraft Launcher. Instálalo desde la web oficial. Esta compilación DEV todavía no instala Minecraft ni NeoForge.")
  }
 }
+func checkStatus(hwnd uintptr) {
+ endpoint:=os.Getenv("MINERUX_API_URL")
+ if endpoint=="" { alert(hwnd,"Backend no configurado. Define MINERUX_API_URL con la URL HTTPS del servicio beta.");return }
+ client,err:=service.New(endpoint)
+ if err!=nil {alert(hwnd,"Configuracion de backend invalida: "+err.Error());return}
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+ defer cancel()
+ status,err:=client.GetStatus(ctx)
+ if err!=nil {alert(hwnd,"No se puede consultar el servidor: "+err.Error());return}
+ switch status.Status {
+ case "maintenance": alert(hwnd,"MANTENIMIENTO: "+status.Message)
+ case "beta": alert(hwnd,"BETA PRIVADA: Necesitas una invitacion valida para jugar. "+status.Message)
+ case "online": alert(hwnd,"SERVIDOR DISPONIBLE: "+status.Message)
+ }
+}
 func windowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) uintptr {
  switch message {
  case wmCommand:
   if uint16(wparam & 0xffff) == idPlay { openOfficialLauncher(hwnd); return 0 }
+  if uint16(wparam & 0xffff) == idStatus { go checkStatus(hwnd); return 0 }
  case wmDestroy:
   postQuitMessage.Call(0)
   return 0
@@ -99,6 +119,7 @@ func main() {
  child(hwnd, "STATIC", "COMPILACION DE DESARROLLO - NO ES EL LAUNCHER FINAL", 35, 87, 550, 30, 0)
  child(hwnd, "STATIC", "Pendiente: Microsoft OAuth, NeoForge, mods y entrada directa al servidor.", 35, 125, 550, 45, 0)
  child(hwnd, "BUTTON", "ABRIR MINECRAFT OFICIAL", 35, 205, 350, 52, idPlay)
+ child(hwnd, "BUTTON", "CONSULTAR ESTADO", 395, 205, 195, 52, idStatus)
  showWindow.Call(hwnd, swShow)
  updateWindow.Call(hwnd)
  var m msg
