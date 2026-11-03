@@ -22,6 +22,7 @@ const (
  swShow = 5
  idPlay = 101
  idStatus = 102
+ idOfficial = 103
 )
 var (
  user32 = syscall.NewLazyDLL("user32.dll")
@@ -93,11 +94,27 @@ func checkStatus(hwnd uintptr) {
  case "online": alert(hwnd,"SERVIDOR DISPONIBLE: "+status.Message)
  }
 }
+// launchAfterStatusCheck fails closed: maintenance, private beta and unreachable API block play.
+// Full beta authorization and direct game launch are not implemented yet.
+func launchAfterStatusCheck(hwnd uintptr) {
+ endpoint:=os.Getenv("MINERUX_API_URL")
+ if endpoint=="" {alert(hwnd,"No hay backend configurado. JUGAR no esta disponible todavia.");return}
+ client,err:=service.New(endpoint)
+ if err!=nil {alert(hwnd,"URL del backend invalida.");return}
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+ defer cancel()
+ s,err:=client.GetStatus(ctx)
+ if err!=nil {alert(hwnd,"No se puede verificar el estado del servidor. Se ha bloqueado JUGAR.");return}
+ if s.Status=="maintenance" {alert(hwnd,"Servidor en mantenimiento: "+s.Message);return}
+ if s.Status=="beta" {alert(hwnd,"Beta privada: el inicio de sesion y la verificacion de invitaciones siguen pendientes.");return}
+ alert(hwnd,"El servidor indica disponible, pero el lanzamiento directo de Minecraft aun no esta implementado. Puedes usar ABRIR MINECRAFT OFICIAL.")
+}
 func windowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) uintptr {
  switch message {
  case wmCommand:
-  if uint16(wparam & 0xffff) == idPlay { openOfficialLauncher(hwnd); return 0 }
+  if uint16(wparam & 0xffff) == idPlay { go launchAfterStatusCheck(hwnd); return 0 }
   if uint16(wparam & 0xffff) == idStatus { go checkStatus(hwnd); return 0 }
+  if uint16(wparam & 0xffff) == idOfficial { openOfficialLauncher(hwnd); return 0 }
  case wmDestroy:
   postQuitMessage.Call(0)
   return 0
@@ -118,8 +135,9 @@ func main() {
  child(hwnd, "STATIC", "MINERUX APOCALYPSE - THE FALLEN WORLD", 35, 38, 550, 35, 0)
  child(hwnd, "STATIC", "COMPILACION DE DESARROLLO - NO ES EL LAUNCHER FINAL", 35, 87, 550, 30, 0)
  child(hwnd, "STATIC", "Pendiente: Microsoft OAuth, NeoForge, mods y entrada directa al servidor.", 35, 125, 550, 45, 0)
- child(hwnd, "BUTTON", "ABRIR MINECRAFT OFICIAL", 35, 205, 350, 52, idPlay)
- child(hwnd, "BUTTON", "CONSULTAR ESTADO", 395, 205, 195, 52, idStatus)
+ child(hwnd, "BUTTON", "JUGAR (EN DESARROLLO)", 35, 185, 350, 45, idPlay)
+ child(hwnd, "BUTTON", "CONSULTAR ESTADO", 395, 185, 195, 45, idStatus)
+ child(hwnd, "BUTTON", "ABRIR MINECRAFT OFICIAL", 35, 240, 350, 40, idOfficial)
  showWindow.Call(hwnd, swShow)
  updateWindow.Call(hwnd)
  var m msg
