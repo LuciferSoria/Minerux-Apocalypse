@@ -5,6 +5,7 @@ import (
  "fmt"
  "os"
  "path/filepath"
+ "strings"
 )
 
 // Progress reports the completed asset count after each verified installation.
@@ -18,8 +19,13 @@ func InstallManifest(ctx context.Context, root string, manifest Manifest, progre
  abs, err := filepath.Abs(root)
  if err != nil { return err }
  if err := os.MkdirAll(abs, 0755); err != nil { return err }
+ seen:=make(map[string]bool,len(manifest.Assets))
  for i, asset := range manifest.Assets {
   if err := ctx.Err(); err != nil { return err }
+  if err := validate(asset); err != nil { return fmt.Errorf("invalid asset %d: %w",i+1,err) }
+  key:=strings.ToLower(asset.Path)
+  if seen[key] { return fmt.Errorf("duplicate asset path %q",asset.Path) }
+  seen[key]=true
   if err := Install(ctx, abs, asset); err != nil {
    return fmt.Errorf("asset %d/%d (%s): %w", i+1, len(manifest.Assets), asset.Path, err)
   }
