@@ -1,0 +1,12 @@
+# Build outputs and secrets
+*.exe
+*.msi
+*.pfx
+*.p12
+.env
+.env.*
+!.env.example
+secrets/
+tokens/
+*.log
+.DS_Store
