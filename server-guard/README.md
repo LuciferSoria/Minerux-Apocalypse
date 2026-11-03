@@ -17,3 +17,9 @@ mkdir -p out
 javac -d out src/main/java/dev/minerux/guard/BetaAccessClient.java src/test/java/dev/minerux/guard/BetaAccessClientTest.java
 java -cp out dev.minerux.guard.BetaAccessClientTest
 ```
+
+## Nuevo límite de integración asíncrona
+
+`LoginAccessGate.check(UUID)` devuelve `CompletableFuture<Boolean>` y ejecuta la consulta HTTP en el `Executor` proporcionado. Si no hay UUID, el ejecutor falla o la consulta genera un error, el resultado es `false`. **No usar `join()` ni `get()` en el hilo principal de Minecraft.** El futuro debe resolverse durante una fase de login que permita retrasar la aceptación; si NeoForge no ofrece esa fase, se necesita una estrategia segura para mantener al jugador desconectado hasta la verificación. Todavía falta registrar el evento NeoForge concreto y verificarlo con la versión 26.1.2.125.
+
+La autenticación online-mode debe estar activa. Una UUID suministrada por el cliente no es prueba de identidad.
