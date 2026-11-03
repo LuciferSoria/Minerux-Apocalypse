@@ -23,6 +23,9 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path "main.go")) { throw "Falta launcher/main.go. No se publicará un ejecutable vacío." }
+      - name: Test updater and launcher packages
+        shell: pwsh
+        run: go test ./...
       - name: Build Windows x64
         shell: pwsh
         run: go build -trimpath -ldflags="-s -w -H windowsgui" -o Minerux-Apocalypse-DEV.exe .
