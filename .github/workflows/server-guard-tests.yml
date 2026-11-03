@@ -1,0 +1,28 @@
+name: Server guard Java tests
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server-guard/**'
+      - '.github/workflows/server-guard-tests.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile server-side authorization adapter
+        shell: bash
+        run: |
+          mkdir -p server-guard/out
+          javac -Xlint:all -d server-guard/out \
+            server-guard/src/main/java/dev/minerux/guard/BetaAccessClient.java \
+            server-guard/src/test/java/dev/minerux/guard/BetaAccessClientTest.java
+      - name: Run fail-closed authorization tests
+        run: java -cp server-guard/out dev.minerux.guard.BetaAccessClientTest
