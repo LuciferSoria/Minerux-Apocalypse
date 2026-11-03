@@ -11,7 +11,24 @@ public final class BetaAccessClientTest {
         check("{\"allowed\":true,\"status\":\"beta\",\"allowed\":false}", false);
         check("error: \"allowed\":true", false);
         check(null, false);
+        check("{\"allowed\":true,\"status\":\"unknown\"}", false);
+        check("{\"status\":\"beta\",\"allowed\":true}", false);
+        check("{\"allowed\":true,\"status\":\"beta\"} trailing", false);
+        invalidConfiguration();
         System.out.println("BetaAccessClient tests passed");
+    }
+    private static void invalidConfiguration() {
+        reject("http://example.com", "12345678901234567890123456789012");
+        reject("https://example.com", "short");
+        reject("https://user:password@example.com", "12345678901234567890123456789012");
+    }
+    private static void reject(String url, String token) {
+        try {
+            new BetaAccessClient(url, token);
+            throw new AssertionError("Unsafe configuration accepted: " + url);
+        } catch (IllegalArgumentException expected) {
+            // Invalid configuration must be rejected before a request is made.
+        }
     }
     private static void check(String json, boolean expected) {
         boolean actual = BetaAccessClient.allowedFromJson(json);
