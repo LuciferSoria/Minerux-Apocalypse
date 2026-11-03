@@ -38,3 +38,15 @@ func TestInstallManifestAlreadyVerified(t *testing.T) {
  if err:=InstallManifest(context.Background(),dir,m,func(done,total int,p string){calls++;if done!=1||total!=1||p!="mods/example.jar"{t.Fatalf("unexpected progress")}});err!=nil{t.Fatal(err)}
  if calls!=1{t.Fatalf("expected one callback, got %d",calls)}
 }
+
+func TestInstallManifestRejectsDuplicateWithoutNetwork(t *testing.T) {
+ dir:=t.TempDir()
+ a:=Asset{Path:"mods/test.jar",URL:"https://example.org/test.jar",SHA256:strings.Repeat("a",64)}
+ m:=Manifest{Schema:1,Version:"dev",Assets:[]Asset{a,a}}
+ ctx,cancel:=context.WithCancel(context.Background())
+ cancel()
+ if err:=InstallManifest(ctx,dir,m,nil);!errors.Is(err,context.Canceled){t.Fatalf("expected cancelled, got %v",err)}
+ // A malformed asset must be rejected without contacting the network.
+ m.Assets=[]Asset{{Path:"../escape.jar",URL:a.URL,SHA256:a.SHA256}}
+ if err:=InstallManifest(context.Background(),dir,m,nil);err==nil{t.Fatal("accepted traversal path")}
+}
