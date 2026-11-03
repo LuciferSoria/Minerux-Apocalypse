@@ -24,11 +24,14 @@ jobs:
           javac -Xlint:all -d server-guard/out \
             server-guard/src/main/java/dev/minerux/guard/BetaAccessClient.java \
             server-guard/src/main/java/dev/minerux/guard/LoginAccessGate.java \
+            server-guard/src/main/java/dev/minerux/guard/LoginCheckWorkers.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessClientTest.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessContractTest.java \
-            server-guard/src/test/java/dev/minerux/guard/LoginAccessGateTest.java
+            server-guard/src/test/java/dev/minerux/guard/LoginAccessGateTest.java \
+            server-guard/src/test/java/dev/minerux/guard/LoginCheckWorkersTest.java
       - name: Run fail-closed authorization tests
         run: |
           java -cp server-guard/out dev.minerux.guard.BetaAccessClientTest
           java -cp server-guard/out dev.minerux.guard.BetaAccessContractTest
           java -cp server-guard/out dev.minerux.guard.LoginAccessGateTest
+          java -cp server-guard/out dev.minerux.guard.LoginCheckWorkersTest
