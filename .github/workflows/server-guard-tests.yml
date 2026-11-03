@@ -26,6 +26,7 @@ jobs:
             server-guard/src/main/java/dev/minerux/guard/LoginAccessGate.java \
             server-guard/src/main/java/dev/minerux/guard/LoginCheckWorkers.java \
             server-guard/src/main/java/dev/minerux/guard/ServerGuardConfig.java \
+            server-guard/src/main/java/dev/minerux/guard/ServerGuardPreflight.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessClientTest.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessContractTest.java \
             server-guard/src/test/java/dev/minerux/guard/LoginAccessGateTest.java \
@@ -38,3 +39,15 @@ jobs:
           java -cp server-guard/out dev.minerux.guard.LoginAccessGateTest
           java -cp server-guard/out dev.minerux.guard.LoginCheckWorkersTest
           java -cp server-guard/out dev.minerux.guard.ServerGuardConfigTest
+      - name: Verify preflight rejects invalid invocation
+        shell: bash
+        run: |
+          set +e
+          java -cp server-guard/out dev.minerux.guard.ServerGuardPreflight >preflight.out 2>&1
+          status=$?
+          set -e
+          test "$status" -eq 3
+          if grep -E 'token|https://' preflight.out; then
+            echo "Unexpected sensitive output"
+            exit 1
+          fi
