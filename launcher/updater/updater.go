@@ -30,8 +30,12 @@ func Parse(data []byte) (Manifest, error) {
  if err:=json.Unmarshal(data,&m);err!=nil{return m,err}
  if m.Schema!=1{return m,errors.New("unsupported manifest schema")}
  if len(m.Version)==0{return m,errors.New("missing version")}
+ seen:=make(map[string]struct{},len(m.Assets))
  for _,a:=range m.Assets {
   if err:=validate(a);err!=nil{return m,err}
+  key:=strings.ToLower(a.Path)
+  if _,exists:=seen[key];exists{return m,fmt.Errorf("duplicate asset path %q",a.Path)}
+  seen[key]=struct{}{}
  }
  return m,nil
 }
@@ -65,13 +69,19 @@ func Install(ctx context.Context,root string,a Asset) error {
  if ok,err:=Verify(dst,a.SHA256);err!=nil{return err}else if ok{return nil}
  if err:=os.MkdirAll(filepath.Dir(dst),0755);err!=nil{return err}
  req,err:=http.NewRequestWithContext(ctx,http.MethodGet,a.URL,nil);if err!=nil{return err}
- client:=&http.Client{Timeout:10*time.Minute}
+ client:=&http.Client{Timeout:10*time.Minute,CheckRedirect:func(req *http.Request,via []*http.Request) error {
+  if req.URL.Scheme!="https" {return fmt.Errorf("insecure download redirect")}
+  if len(via)>=5 {return fmt.Errorf("too many redirects")}
+  return nil
+ }}
  resp,err:=client.Do(req);if err!=nil{return err};defer resp.Body.Close()
  if resp.StatusCode!=http.StatusOK{return fmt.Errorf("download %s: HTTP %d",a.Path,resp.StatusCode)}
  tmp,err:=os.CreateTemp(filepath.Dir(dst),".minerux-*.part");if err!=nil{return err}
  defer os.Remove(tmp.Name())
  h:=sha256.New()
- _,err=io.Copy(io.MultiWriter(tmp,h),io.LimitReader(resp.Body,1<<30+1))
+ n,copyErr:=io.Copy(io.MultiWriter(tmp,h),io.LimitReader(resp.Body,(1<<30)+1))
+ err=copyErr
+ if n>(1<<30) {tmp.Close();return fmt.Errorf("asset exceeds 1 GiB limit")}
  if err!=nil{tmp.Close();return err}
  if err=tmp.Close();err!=nil{return err}
  if !strings.EqualFold(hex.EncodeToString(h.Sum(nil)),a.SHA256){return fmt.Errorf("sha256 mismatch: %s",a.Path)}
