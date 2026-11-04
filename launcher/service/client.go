@@ -17,8 +17,8 @@ type Access struct { Access bool `json:"access"` }
 type Client struct { base string; http *http.Client }
 func New(base string) (*Client,error) {
  u,err:=url.Parse(base)
- if err!=nil || u.Scheme!="https" || u.Host=="" || u.User!=nil || u.RawQuery!="" || u.Fragment!="" {return nil,errors.New("backend URL must be HTTPS without credentials, query or fragment")}
- return &Client{base:strings.TrimRight(base,"/"),http:&http.Client{Timeout:12*time.Second,CheckRedirect:func(req *http.Request,via []*http.Request) error {if req.URL.Scheme!="https" || len(via)>=3{return errors.New("unsafe redirect")};return nil}}},nil
+ if err!=nil || u.Scheme!="https" || u.Host=="" || u.User!=nil || u.RawQuery!="" || u.Fragment!="" || (u.Path!="" && u.Path!="/") || u.Opaque!="" {return nil,errors.New("backend URL must be HTTPS without credentials, query or fragment")}
+ return &Client{base:strings.TrimRight(u.String(),"/"),http:&http.Client{Timeout:12*time.Second,CheckRedirect:func(req *http.Request,via []*http.Request) error {if len(via)>=1{return errors.New("backend redirects are not allowed")};return nil}}},nil
 }
 func (c *Client) request(ctx context.Context,method,path,token string,body any,out any) error {
  var reader io.Reader
