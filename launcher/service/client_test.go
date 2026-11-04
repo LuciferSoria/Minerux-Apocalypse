@@ -7,7 +7,7 @@ import (
  "testing"
 )
 func TestNewRejectsInsecure(t *testing.T) {
- for _,s:=range []string{"http://example.org","file:///tmp/x","https://user:pw@example.org","https://example.org/?token=abc"}{
+ for _,s:=range []string{"http://example.org","file:///tmp/x","https://user:pw@example.org","https://example.org/?token=abc","https://example.org/private","https://example.org/#fragment"}{
   if _,err:=New(s);err==nil{t.Errorf("accepted %q",s)}
  }
 }
@@ -30,4 +30,22 @@ func TestFailClosed(t *testing.T) {
  server:=httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){http.Error(w,"offline",503)}));defer server.Close()
  c,_:=New(server.URL);c.http=server.Client()
  ok,_,err:=c.CanPlay(context.Background(),"token");if ok||err==nil{t.Fatalf("must fail closed: %v %v",ok,err)}
+}
+
+func TestBackendRedirectBlocked(t *testing.T) {
+ redirected := false
+ target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  redirected = true
+  t.Error("redirect destination must never receive player bearer token")
+ }))
+ defer target.Close()
+ origin := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  http.Redirect(w,r,target.URL+"/steal",http.StatusTemporaryRedirect)
+ }))
+ defer origin.Close()
+ c,err := New(origin.URL)
+ if err!=nil { t.Fatal(err) }
+ c.http.Transport = origin.Client().Transport
+ _,err = c.CheckAccess(context.Background(),"verified-player-token")
+ if err==nil || redirected { t.Fatalf("redirect must be rejected: err=%v redirected=%v",err,redirected) }
 }
