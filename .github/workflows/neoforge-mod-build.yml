@@ -27,6 +27,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.2.1'
+      - name: Validate Python test and preflight syntax
+        run: python3 -m compileall -q server-guard/neoforge-mod
       - name: Test JAR packaging validator
         run: python3 -m unittest discover -s server-guard/neoforge-mod -p 'test_*.py' -v
       - name: Compile and package NeoForge server mod
