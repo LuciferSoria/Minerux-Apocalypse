@@ -8,6 +8,7 @@ import (
  "os"
  "path/filepath"
  "regexp"
+ "net/url"
  "strings"
 )
 
@@ -28,7 +29,10 @@ type ManifestFile struct {
 
 func ParseManifest(r io.Reader) (Manifest,error) {
  var m Manifest
- decoder:=json.NewDecoder(io.LimitReader(r,maxManifestBytes+1))
+ data,err:=io.ReadAll(io.LimitReader(r,maxManifestBytes+1))
+ if err!=nil{return m,err}
+ if len(data)>maxManifestBytes{return m,errors.New("manifest exceeds size limit")}
+ decoder:=json.NewDecoder(strings.NewReader(string(data)))
  decoder.DisallowUnknownFields()
  if err:=decoder.Decode(&m);err!=nil{return m,fmt.Errorf("invalid manifest: %w",err)}
  var trailing any
@@ -45,7 +49,8 @@ func ParseManifest(r io.Reader) (Manifest,error) {
   if names[normalized] {return m,errors.New("duplicate artifact filename")}
   names[normalized]=true
   if len(file.SHA256)!=64 {return m,errors.New("artifact SHA-256 is required")}
-  // Download validates HTTPS and full SHA-256 before writing.
+  parsed,err:=url.Parse(file.URL)
+  if err!=nil || parsed.Scheme!="https" || parsed.Host=="" || parsed.User!=nil || parsed.Fragment!="" {return m,errors.New("artifact URL must be HTTPS")}
  }
  return m,nil
 }
@@ -55,8 +60,12 @@ func ParseManifest(r io.Reader) (Manifest,error) {
 // version is not marked active; the launcher must activate it separately.
 func InstallManifest(m Manifest,root string,download func(Artifact,string)error) (string,error) {
  if !safeFileName.MatchString(m.Version) || len(m.Files)==0 || len(m.Files)>256 {return "",errors.New("invalid manifest")}
+ seen:=map[string]bool{}
  for _,f:=range m.Files {
   if !safeFileName.MatchString(f.Name) || f.Name=="." || f.Name==".." || strings.HasSuffix(f.Name,".") {return "",errors.New("unsafe artifact filename")}
+  name:=strings.ToLower(f.Name)
+  if seen[name] {return "",errors.New("duplicate artifact filename")}
+  seen[name]=true
  }
  versionDir:=filepath.Join(root,"versions",m.Version)
  if err:=os.MkdirAll(versionDir,0700);err!=nil{return "",err}
