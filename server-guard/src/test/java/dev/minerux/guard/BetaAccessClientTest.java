@@ -20,6 +20,8 @@ public final class BetaAccessClientTest {
     private static void invalidConfiguration() {
         reject("http://example.com", "12345678901234567890123456789012");
         reject("https://example.com", "short");
+        reject("https://example.com", "a".repeat(40) + " ");
+        reject("https://example.com", "a".repeat(4097));
         reject("https://user:password@example.com", "12345678901234567890123456789012");
     }
     private static void reject(String url, String token) {
