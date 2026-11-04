@@ -37,3 +37,9 @@ La compilación de desarrollo no constituye una versión jugable.
 La función Go `installer.ImportModsZIP(zipPath, root, version)` acepta un ZIP local con archivos `mods/*.jar` y prepara los mods en `versions/<version>/mods/`. Rechaza rutas anidadas, nombres de dispositivo reservados de Windows, duplicados, enlaces simbólicos y entradas demasiado grandes. Una segunda importación reutiliza los JAR cuyo contenido coincide y rechaza los modificados.
 
 Se ha inspeccionado el archivo aportado `mods.zip`: contiene 12 JAR y un directorio `mods/`. Este ZIP no se publica automáticamente en el repositorio. La importación todavía no está conectada al botón de la interfaz, y no verifica por sí misma compatibilidad con NeoForge ni instala Minecraft.
+
+## Botón de Windows: IMPORTAR MODS.ZIP
+
+La interfaz de desarrollo incluye el botón **IMPORTAR MODS.ZIP**. Busca un archivo llamado `mods.zip` junto al `.exe` y llama a `ImportModsZIP` para preparar sus archivos `mods/*.jar` en `%LOCALAPPDATA%\\MineruxApocalypse\\versions\\26.1.2\\mods\\`.
+
+No descarga el ZIP, no modifica la carpeta oficial de Minecraft y no garantiza que los mods sean compatibles con NeoForge. Para que el botón funcione hay que proporcionar el ZIP localmente; el repositorio no incluye los mods. El botón tampoco instala Minecraft ni ejecuta el juego.
