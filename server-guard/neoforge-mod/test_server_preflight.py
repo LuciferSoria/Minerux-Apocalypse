@@ -13,6 +13,14 @@ class ServerPreflightTests(unittest.TestCase):
     def test_valid(self):
         self.assertEqual(preflight.inspect(PROPERTIES, ENV), [])
 
+    def test_duplicate_online_mode_denied(self):
+        errors = preflight.inspect(PROPERTIES + "online-mode=false\n", ENV)
+        self.assertTrue(any("duplicate setting: online-mode" in e for e in errors))
+
+    def test_duplicate_whitelist_denied(self):
+        errors = preflight.inspect(PROPERTIES + "white-list=true\n", ENV)
+        self.assertTrue(any("duplicate setting: white-list" in e for e in errors))
+
     def test_offline_mode_denied(self):
         self.assertTrue(any("online-mode" in e for e in preflight.inspect(PROPERTIES.replace("online-mode=true", "online-mode=false"), ENV)))
 
