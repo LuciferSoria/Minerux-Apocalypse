@@ -18,6 +18,8 @@ public final class BetaAccessClientTest {
         System.out.println("BetaAccessClient tests passed");
     }
     private static void invalidConfiguration() {
+        reject(null, "12345678901234567890123456789012");
+        reject("", "12345678901234567890123456789012");
         reject("http://example.com", "12345678901234567890123456789012");
         reject("https://example.com", "short");
         reject("https://example.com", "a".repeat(40) + " ");
