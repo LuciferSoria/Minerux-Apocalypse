@@ -4,6 +4,8 @@ package main
 
 import (
  "os"
+ "fmt"
+ "github.com/LuciferSoria/Minerux-Apocalypse/launcher/installer"
  "os/exec"
  "path/filepath"
  "syscall"
@@ -23,6 +25,7 @@ const (
  idPlay = 101
  idStatus = 102
  idOfficial = 103
+ idInstall = 104
 )
 var (
  user32 = syscall.NewLazyDLL("user32.dll")
@@ -109,12 +112,35 @@ func launchAfterStatusCheck(hwnd uintptr) {
  if s.Status=="beta" {alert(hwnd,"Beta privada: el inicio de sesion y la verificacion de invitaciones siguen pendientes.");return}
  alert(hwnd,"El servidor indica disponible, pero el lanzamiento directo de Minecraft aun no esta implementado. Puedes usar ABRIR MINECRAFT OFICIAL.")
 }
+// installVerifiedPackage only stages artifacts from a local trusted manifest.
+// This does not install Minecraft or NeoForge yet.
+func installVerifiedPackage(hwnd uintptr) {
+ exe,err:=os.Executable()
+ if err!=nil {alert(hwnd,"No se puede localizar el ejecutable.");return}
+ manifestPath:=filepath.Join(filepath.Dir(exe),"minerux-package.json")
+ file,err:=os.Open(manifestPath)
+ if err!=nil {alert(hwnd,"Falta minerux-package.json junto al launcher. No se ha instalado nada.");return}
+ defer file.Close()
+ manifest,err:=installer.ParseManifest(file)
+ if err!=nil {alert(hwnd,"Manifiesto de instalación no válido: "+err.Error());return}
+ localData:=os.Getenv("LOCALAPPDATA")
+ if localData=="" {alert(hwnd,"No se encuentra LOCALAPPDATA.");return}
+ root:=filepath.Join(localData,"MineruxApocalypse")
+ ctx,cancel:=context.WithTimeout(context.Background(),30*time.Minute)
+ defer cancel()
+ dir,err:=installer.InstallManifest(manifest,root,func(a installer.Artifact,dest string)error {
+  return installer.Download(ctx,a,dest)
+ })
+ if err!=nil {alert(hwnd,"Instalación incompleta: "+err.Error());return}
+ alert(hwnd,fmt.Sprintf("Paquete verificado y preparado en: %s. Aún no instala Minecraft ni inicia el juego.",dir))
+}
 func windowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) uintptr {
  switch message {
  case wmCommand:
   if uint16(wparam & 0xffff) == idPlay { go launchAfterStatusCheck(hwnd); return 0 }
   if uint16(wparam & 0xffff) == idStatus { go checkStatus(hwnd); return 0 }
   if uint16(wparam & 0xffff) == idOfficial { openOfficialLauncher(hwnd); return 0 }
+  if uint16(wparam & 0xffff) == idInstall { go installVerifiedPackage(hwnd); return 0 }
  case wmDestroy:
   postQuitMessage.Call(0)
   return 0
@@ -138,6 +164,7 @@ func main() {
  child(hwnd, "BUTTON", "JUGAR (EN DESARROLLO)", 35, 185, 350, 45, idPlay)
  child(hwnd, "BUTTON", "CONSULTAR ESTADO", 395, 185, 195, 45, idStatus)
  child(hwnd, "BUTTON", "ABRIR MINECRAFT OFICIAL", 35, 240, 350, 40, idOfficial)
+ child(hwnd, "BUTTON", "INSTALAR PAQUETE VERIFICADO", 395, 240, 195, 40, idInstall)
  showWindow.Call(hwnd, swShow)
  updateWindow.Call(hwnd)
  var m msg
