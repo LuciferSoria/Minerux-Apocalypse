@@ -31,3 +31,9 @@ El launcher instala los archivos en `%LOCALAPPDATA%\\MineruxApocalypse\\versions
 - La funcionalidad debe probarse en Windows antes de publicar un ejecutable.
 
 La compilación de desarrollo no constituye una versión jugable.
+
+## Importación de mods desde ZIP local
+
+La función Go `installer.ImportModsZIP(zipPath, root, version)` acepta un ZIP local con archivos `mods/*.jar` y prepara los mods en `versions/<version>/mods/`. Rechaza rutas anidadas, nombres de dispositivo reservados de Windows, duplicados, enlaces simbólicos y entradas demasiado grandes. Una segunda importación reutiliza los JAR cuyo contenido coincide y rechaza los modificados.
+
+Se ha inspeccionado el archivo aportado `mods.zip`: contiene 12 JAR y un directorio `mods/`. Este ZIP no se publica automáticamente en el repositorio. La importación todavía no está conectada al botón de la interfaz, y no verifica por sí misma compatibilidad con NeoForge ni instala Minecraft.
