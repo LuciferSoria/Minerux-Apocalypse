@@ -27,11 +27,13 @@ jobs:
             server-guard/src/main/java/dev/minerux/guard/LoginCheckWorkers.java \
             server-guard/src/main/java/dev/minerux/guard/ServerGuardConfig.java \
             server-guard/src/main/java/dev/minerux/guard/ServerGuardPreflight.java \
+            server-guard/src/main/java/dev/minerux/guard/AuthorizationService.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessClientTest.java \
             server-guard/src/test/java/dev/minerux/guard/BetaAccessContractTest.java \
             server-guard/src/test/java/dev/minerux/guard/LoginAccessGateTest.java \
             server-guard/src/test/java/dev/minerux/guard/LoginCheckWorkersTest.java \
-            server-guard/src/test/java/dev/minerux/guard/ServerGuardConfigTest.java
+            server-guard/src/test/java/dev/minerux/guard/ServerGuardConfigTest.java \
+            server-guard/src/test/java/dev/minerux/guard/AuthorizationServiceTest.java
       - name: Run fail-closed authorization tests
         run: |
           java -cp server-guard/out dev.minerux.guard.BetaAccessClientTest
@@ -39,6 +41,7 @@ jobs:
           java -cp server-guard/out dev.minerux.guard.LoginAccessGateTest
           java -cp server-guard/out dev.minerux.guard.LoginCheckWorkersTest
           java -cp server-guard/out dev.minerux.guard.ServerGuardConfigTest
+          java -cp server-guard/out dev.minerux.guard.AuthorizationServiceTest
       - name: Verify preflight rejects invalid invocation
         shell: bash
         run: |
