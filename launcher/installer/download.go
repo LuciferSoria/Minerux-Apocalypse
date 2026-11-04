@@ -23,6 +23,10 @@ type Artifact struct {
 }
 
 func Download(ctx context.Context, artifact Artifact, destination string) error {
+ return downloadWithClient(ctx, artifact, destination, &http.Client{Timeout: 10*time.Minute})
+}
+
+func downloadWithClient(ctx context.Context, artifact Artifact, destination string, client *http.Client) error {
  u, err := url.Parse(artifact.URL)
  if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" {
   return errors.New("artifact URL must be HTTPS without credentials or fragment")
@@ -38,15 +42,14 @@ func Download(ctx context.Context, artifact Artifact, destination string) error 
  if err != nil { return err }
  defer os.Remove(tmp.Name())
  defer tmp.Close()
- client := &http.Client{
-  Timeout: 10*time.Minute,
-  CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-   return errors.New("artifact redirects are not allowed")
-  },
+ // Use a copy so redirect policy cannot be weakened by a caller.
+ localClient := *client
+ localClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+  return errors.New("artifact redirects are not allowed")
  }
  req,err := http.NewRequestWithContext(ctx,http.MethodGet,u.String(),nil)
  if err != nil { return err }
- resp,err := client.Do(req)
+ resp,err := localClient.Do(req)
  if err != nil { return err }
  defer resp.Body.Close()
  if resp.StatusCode != http.StatusOK { return fmt.Errorf("artifact download HTTP %d",resp.StatusCode) }
