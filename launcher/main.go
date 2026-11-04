@@ -26,6 +26,7 @@ const (
  idStatus = 102
  idOfficial = 103
  idInstall = 104
+ idMods = 105
 )
 var (
  user32 = syscall.NewLazyDLL("user32.dll")
@@ -134,6 +135,20 @@ func installVerifiedPackage(hwnd uintptr) {
  if err!=nil {alert(hwnd,"Instalación incompleta: "+err.Error());return}
  alert(hwnd,fmt.Sprintf("Paquete verificado y preparado en: %s. Aún no instala Minecraft ni inicia el juego.",dir))
 }
+// importLocalMods stages the supplied ZIP alongside the executable. The ZIP
+// is never fetched from the network; users must supply their own mod archive.
+func importLocalMods(hwnd uintptr) {
+ exe,err:=os.Executable()
+ if err!=nil {alert(hwnd,"No se puede localizar el ejecutable.");return}
+ archive:=filepath.Join(filepath.Dir(exe),"mods.zip")
+ if _,err:=os.Stat(archive);err!=nil {alert(hwnd,"Coloca mods.zip junto al launcher antes de importar.");return}
+ localData:=os.Getenv("LOCALAPPDATA")
+ if localData=="" {alert(hwnd,"No se encuentra LOCALAPPDATA.");return}
+ root:=filepath.Join(localData,"MineruxApocalypse")
+ dir,count,err:=installer.ImportModsZIP(archive,root,"26.1.2")
+ if err!=nil {alert(hwnd,"No se pudieron importar los mods: "+err.Error());return}
+ alert(hwnd,fmt.Sprintf("%d mods preparados en %s. Comprueba la compatibilidad con NeoForge antes de jugar.",count,dir))
+}
 func windowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) uintptr {
  switch message {
  case wmCommand:
@@ -141,6 +156,7 @@ func windowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) uintptr {
   if uint16(wparam & 0xffff) == idStatus { go checkStatus(hwnd); return 0 }
   if uint16(wparam & 0xffff) == idOfficial { openOfficialLauncher(hwnd); return 0 }
   if uint16(wparam & 0xffff) == idInstall { go installVerifiedPackage(hwnd); return 0 }
+  if uint16(wparam & 0xffff) == idMods { go importLocalMods(hwnd); return 0 }
  case wmDestroy:
   postQuitMessage.Call(0)
   return 0
@@ -156,7 +172,7 @@ func main() {
  name := utf16("MineruxApocalypseWindow")
  wc := wndClass{WndProc: syscall.NewCallback(windowProc), Instance: instance, Background: 6, ClassName: name}
  if r, _, _ := registerClass.Call(uintptr(unsafe.Pointer(&wc))); r == 0 { panic("RegisterClassW failed") }
- hwnd, _, _ := createWindow.Call(0, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(utf16("Minerux Apocalypse - DEV"))), wsOverlappedWindow|wsVisible, 160, 120, 640, 360, 0, 0, instance, 0)
+ hwnd, _, _ := createWindow.Call(0, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(utf16("Minerux Apocalypse - DEV"))), wsOverlappedWindow|wsVisible, 160, 120, 640, 425, 0, 0, instance, 0)
  if hwnd == 0 { panic("CreateWindowExW failed") }
  child(hwnd, "STATIC", "MINERUX APOCALYPSE - THE FALLEN WORLD", 35, 38, 550, 35, 0)
  child(hwnd, "STATIC", "COMPILACION DE DESARROLLO - NO ES EL LAUNCHER FINAL", 35, 87, 550, 30, 0)
@@ -165,6 +181,7 @@ func main() {
  child(hwnd, "BUTTON", "CONSULTAR ESTADO", 395, 185, 195, 45, idStatus)
  child(hwnd, "BUTTON", "ABRIR MINECRAFT OFICIAL", 35, 240, 350, 40, idOfficial)
  child(hwnd, "BUTTON", "INSTALAR PAQUETE VERIFICADO", 395, 240, 195, 40, idInstall)
+ child(hwnd, "BUTTON", "IMPORTAR MODS.ZIP", 35, 290, 555, 40, idMods)
  showWindow.Call(hwnd, swShow)
  updateWindow.Call(hwnd)
  var m msg
