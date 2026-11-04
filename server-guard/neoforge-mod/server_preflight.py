@@ -17,7 +17,10 @@ def inspect(properties: str, environment: dict[str, str]) -> list[str]:
         if not line or line.startswith(("#", "!")) or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        config[key.strip()] = value.strip()
+        key = key.strip()
+        if key in config:
+            errors.append("server.properties contains duplicate setting: " + key)
+        config[key] = value.strip()
 
     if config.get("online-mode", "").lower() != "true":
         errors.append("server.properties must set online-mode=true")
