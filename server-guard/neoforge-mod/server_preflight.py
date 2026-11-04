@@ -22,11 +22,11 @@ def inspect(properties: str, environment: dict[str, str]) -> list[str]:
             errors.append("server.properties contains duplicate setting: " + key)
         config[key] = value.strip()
 
-    if config.get("online-mode", "").lower() != "true":
+    if config.get("online-mode", "") != "true":
         errors.append("server.properties must set online-mode=true")
-    if config.get("white-list", "").lower() != "true":
+    if config.get("white-list", "") != "true":
         errors.append("server.properties must set white-list=true until the beta gate is verified")
-    if config.get("enforce-whitelist", "").lower() != "true":
+    if config.get("enforce-whitelist", "") != "true":
         errors.append("server.properties must set enforce-whitelist=true until the beta gate is verified")
 
     url = environment.get("MINERUX_API_URL", "")
