@@ -13,6 +13,9 @@ public final class ServerGuardConfigTest {
             }
         }
         reject("http://api.example.org", token, 4, 64);
+        reject("https://api.example.org/unexpected/path", token, 4, 64);
+        reject("https://api.example.org/api/", token, 4, 64);
+        reject("https://api.example.org:0", token, 4, 64);
         reject("https://api.example.org", "short", 4, 64);
         reject("https://api.example.org", token, 0, 64);
         reject("https://api.example.org", token, 33, 64);
