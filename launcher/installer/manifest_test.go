@@ -45,3 +45,22 @@ func TestInstallStagesVersion(t *testing.T) {
  if folder!=filepath.Join(root,"versions","26.1.2-beta1"){t.Fatalf("wrong path %s",folder)}
  if _,err:=os.Stat(filepath.Join(folder,"example.jar"));err!=nil{t.Fatal(err)}
 }
+
+func TestRejectReservedWindowsNames(t *testing.T) {
+ for _,name:=range []string{"CON","con.jar","NUL.txt","COM1.jar","lpt9.log","AUX","PRN"} {
+  withName:=strings.Replace(goodManifest,"example.jar",name,1)
+  if _,err:=ParseManifest(strings.NewReader(withName));err==nil{t.Errorf("accepted reserved filename %q",name)}
+ }
+}
+func TestInstallRejectsInvalidManifestWithoutDownloading(t *testing.T) {
+ m,err:=ParseManifest(strings.NewReader(goodManifest))
+ if err!=nil{t.Fatal(err)}
+ m.Files[0].SHA256="invalid"
+ called:=false
+ _,err=InstallManifest(m,t.TempDir(),func(Artifact,string)error{called=true;return nil})
+ if err==nil || called {t.Fatalf("invalid manifest triggered download: %v",err)}
+}
+func TestRejectNonHexDigest(t *testing.T) {
+ bad:=strings.Replace(goodManifest,strings.Repeat("a",64),strings.Repeat("z",64),1)
+ if _,err:=ParseManifest(strings.NewReader(bad));err==nil{t.Fatal("accepted non-hex digest")}
+}
