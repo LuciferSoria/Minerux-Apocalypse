@@ -25,13 +25,15 @@ public final class BetaAccessClient {
     public BetaAccessClient(String baseUrl, String serverToken) {
         URI u = URI.create(baseUrl);
         if (!"https".equalsIgnoreCase(u.getScheme()) || u.getHost() == null
-                || u.getUserInfo() != null || u.getQuery() != null || u.getFragment() != null) {
+                || u.getUserInfo() != null || u.getQuery() != null || u.getFragment() != null
+                || (u.getRawPath() != null && !u.getRawPath().matches("/?"))
+                || u.getPort() == 0) {
             throw new IllegalArgumentException("HTTPS backend URL required");
         }
         if (serverToken == null || serverToken.length() < 32) {
             throw new IllegalArgumentException("server token must contain at least 32 characters");
         }
-        this.base = URI.create(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
+        this.base = URI.create(u.getScheme() + "://" + u.getRawAuthority() + "/");
         this.token = serverToken;
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(4))
