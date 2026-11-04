@@ -30,8 +30,9 @@ public final class BetaAccessClient {
                 || u.getPort() == 0) {
             throw new IllegalArgumentException("HTTPS backend URL required");
         }
-        if (serverToken == null || serverToken.length() < 32) {
-            throw new IllegalArgumentException("server token must contain at least 32 characters");
+        if (serverToken == null || serverToken.length() < 32 || serverToken.length() > 4096
+                || !serverToken.matches("[A-Za-z0-9._~+/-]+")) {
+            throw new IllegalArgumentException("server token must be 32-4096 safe ASCII characters");
         }
         this.base = URI.create(u.getScheme() + "://" + u.getRawAuthority() + "/");
         this.token = serverToken;
