@@ -21,6 +21,12 @@ class ServerPreflightTests(unittest.TestCase):
         errors = preflight.inspect(PROPERTIES + "white-list=true\n", ENV)
         self.assertTrue(any("duplicate setting: white-list" in e for e in errors))
 
+    def test_noncanonical_true_denied(self):
+        for setting in ("online-mode", "white-list", "enforce-whitelist"):
+            with self.subTest(setting=setting):
+                props = PROPERTIES.replace(setting + "=true", setting + "=TRUE")
+                self.assertTrue(preflight.inspect(props, ENV))
+
     def test_offline_mode_denied(self):
         self.assertTrue(any("online-mode" in e for e in preflight.inspect(PROPERTIES.replace("online-mode=true", "online-mode=false"), ENV)))
 
