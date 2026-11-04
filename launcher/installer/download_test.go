@@ -63,9 +63,9 @@ func TestVerifiedDownload(t *testing.T) {
  if err!=nil {t.Fatal(err)}
  got,err:=os.ReadFile(destination)
  if err!=nil || string(got)!=string(payload) {t.Fatalf("wrong installed bytes: %v",err)}
- // A second install must not replace the verified file.
- if err:=downloadWithClient(context.Background(),Artifact{URL:server.URL, SHA256:hex.EncodeToString(sum[:])},destination,server.Client());err==nil {
-  t.Fatal("existing destination was overwritten")
+ // A second install with identical verified bytes is a no-op.
+ if err:=downloadWithClient(context.Background(),Artifact{URL:server.URL, SHA256:hex.EncodeToString(sum[:])},destination,server.Client());err!=nil {
+  t.Fatalf("idempotent reinstall failed: %v",err)
  }
 }
 
@@ -90,4 +90,14 @@ func TestRedirectNeverReachesTarget(t *testing.T) {
  defer origin.Close()
  err:=downloadWithClient(context.Background(),Artifact{URL:origin.URL,SHA256:strings.Repeat("0",64)},filepath.Join(t.TempDir(),"mod.jar"),origin.Client())
  if err==nil || targetHit {t.Fatalf("redirect was followed: err=%v targetHit=%v",err,targetHit)}
+}
+
+func TestRejectTamperedExistingArtifact(t *testing.T) {
+ destination:=filepath.Join(t.TempDir(),"tampered.jar")
+ if err:=os.WriteFile(destination,[]byte("tampered"),0600);err!=nil{t.Fatal(err)}
+ sum:=sha256.Sum256([]byte("trusted"))
+ err:=Download(context.Background(),Artifact{URL:"https://example.org/trusted.jar",SHA256:hex.EncodeToString(sum[:])},destination)
+ if err==nil || !strings.Contains(err.Error(),"mismatch"){t.Fatalf("expected mismatch, got %v",err)}
+ got,err:=os.ReadFile(destination)
+ if err!=nil || string(got)!="tampered"{t.Fatalf("existing file changed: %q %v",got,err)}
 }
