@@ -28,6 +28,9 @@ class ServerPreflightTests(unittest.TestCase):
     def test_missing_token_denied(self):
         self.assertTrue(preflight.inspect(PROPERTIES, {**ENV, "MINERUX_SERVER_TOKEN": ""}))
 
+    def test_out_of_range_port_denied(self):
+        self.assertTrue(preflight.inspect(PROPERTIES, {**ENV, "MINERUX_API_URL": "https://beta.example.org:99999"}))
+
     def test_invalid_port_denied(self):
         self.assertTrue(preflight.inspect(PROPERTIES, {**ENV, "MINERUX_API_URL": "https://beta.example.org:bad"}))
 
