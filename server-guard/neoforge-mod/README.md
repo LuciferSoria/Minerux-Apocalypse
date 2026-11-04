@@ -36,3 +36,9 @@ The standalone Java 21 CI does not validate this Gradle mod build. Java 25 is re
 The experimental workflow `.github/workflows/neoforge-mod-build.yml` runs with Java 25 and Gradle 9.2.1. On a **successful** build, GitHub Actions publishes `minerux-neoforge-guard-development` as a workflow artifact; this is **not** a signed release or a production-ready server plugin. Build success, loader compatibility, and actual pre-join denial must all be verified independently.
 
 In GitHub: **Actions → NeoForge mod build (experimental) → Run workflow**. Inspect the build log and artifact before considering a deployment. Do not distribute any artifact that has not passed the acceptance tests above.
+
+## JAR packaging verification
+
+Before the workflow uploads the development JAR, `verify_jar.py` checks that the mod entrypoint, authorization classes, and NeoForge metadata are packaged and rejects a small set of known private-file names. The workflow fails if no JAR or more than one JAR is produced.
+
+This is a **structural** check only. It cannot detect every possible secret, confirm that the Minecraft loader accepts the mod, or establish that denied players are disconnected before world join. Those require build logs, secret review, and live integration tests.
