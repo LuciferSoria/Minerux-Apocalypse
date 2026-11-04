@@ -31,7 +31,8 @@ def inspect(properties: str, environment: dict[str, str]) -> list[str]:
         parsed = urlsplit(url)
         if (parsed.scheme.lower() != "https" or not parsed.hostname
                 or parsed.username or parsed.password or parsed.query or parsed.fragment
-                or parsed.path not in ("", "/") or parsed.port == 0\n                or (parsed.port is not None and parsed.port > 65535)):
+                or parsed.path not in ("", "/") or parsed.port == 0
+                or (parsed.port is not None and parsed.port > 65535)):
             errors.append("MINERUX_API_URL must be an HTTPS origin")
     except ValueError:
         errors.append("MINERUX_API_URL is invalid")
