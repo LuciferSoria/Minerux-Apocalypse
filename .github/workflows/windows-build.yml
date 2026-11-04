@@ -23,6 +23,12 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path "main.go")) { throw "Falta launcher/main.go. No se publicará un ejecutable vacío." }
+      - name: Check Go formatting and syntax
+        shell: pwsh
+        run: |
+          $unformatted = gofmt -l .
+          if ($LASTEXITCODE -ne 0) { throw "gofmt failed" }
+          if ($unformatted) { Write-Host $unformatted; throw "Go source is not formatted" }
       - name: Test updater and launcher packages
         shell: pwsh
         run: go test ./...
