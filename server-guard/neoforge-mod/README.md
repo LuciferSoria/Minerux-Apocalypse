@@ -42,3 +42,15 @@ In GitHub: **Actions → NeoForge mod build (experimental) → Run workflow**. I
 Before the workflow uploads the development JAR, `verify_jar.py` checks that the mod entrypoint, authorization classes, and NeoForge metadata are packaged and rejects a small set of known private-file names. The workflow fails if no JAR or more than one JAR is produced.
 
 This is a **structural** check only. It cannot detect every possible secret, confirm that the Minecraft loader accepts the mod, or establish that denied players are disconnected before world join. Those require build logs, secret review, and live integration tests.
+
+## Read-only server deployment preflight
+
+Before exposing the beta server, set `online-mode=true`, `white-list=true`, and `enforce-whitelist=true` in `server.properties`. Add only approved beta users to the vanilla Minecraft whitelist as a temporary, independently enforced barrier.
+
+With `MINERUX_API_URL` and `MINERUX_SERVER_TOKEN` supplied to the server process, run:
+
+```bash
+python3 server-guard/neoforge-mod/server_preflight.py /path/to/server.properties
+```
+
+The script only reads configuration, does not print token values, and does not contact the backend. A passing result **does not** establish that the token is valid, that the NeoForge mod builds, or that the negotiation gate denies unauthorized players. The vanilla whitelist and backend beta grants must both be maintained until the full gate is verified.
