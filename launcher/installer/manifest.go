@@ -14,23 +14,7 @@ import (
 )
 
 const maxManifestBytes = 1 << 20
-var safeFileName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}package installer
-
-import (
- "encoding/json"
- "encoding/hex"
- "errors"
- "fmt"
- "io"
- "os"
- "path/filepath"
- "regexp"
- "net/url"
- "strings"
-)
-
-const maxManifestBytes = 1 << 20
-)
+var safeFileName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 
 func validWindowsName(name string) bool {
  if !safeFileName.MatchString(name) || strings.HasSuffix(name,".") {return false}
