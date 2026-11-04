@@ -23,6 +23,9 @@ public final class BetaAccessClient {
     private final String token;
 
     public BetaAccessClient(String baseUrl, String serverToken) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("HTTPS backend URL required");
+        }
         URI u = URI.create(baseUrl);
         if (!"https".equalsIgnoreCase(u.getScheme()) || u.getHost() == null
                 || u.getUserInfo() != null || u.getQuery() != null || u.getFragment() != null
