@@ -30,3 +30,9 @@ The standalone Java 21 CI does not validate this Gradle mod build. Java 25 is re
 7. Inspect server logs and built JAR: no private token or beta codes may be included.
 
 **Note:** the current gate is designed around the documented NeoForge negotiation event, but the precise runtime disconnect behavior and Gradle build have not been verified in this repository yet.
+
+## CI build artifact
+
+The experimental workflow `.github/workflows/neoforge-mod-build.yml` runs with Java 25 and Gradle 9.2.1. On a **successful** build, GitHub Actions publishes `minerux-neoforge-guard-development` as a workflow artifact; this is **not** a signed release or a production-ready server plugin. Build success, loader compatibility, and actual pre-join denial must all be verified independently.
+
+In GitHub: **Actions → NeoForge mod build (experimental) → Run workflow**. Inspect the build log and artifact before considering a deployment. Do not distribute any artifact that has not passed the acceptance tests above.
