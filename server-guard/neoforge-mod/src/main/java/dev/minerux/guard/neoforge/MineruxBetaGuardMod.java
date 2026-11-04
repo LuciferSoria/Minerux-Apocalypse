@@ -6,13 +6,15 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerNegotiationEvent;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 /**
  * Server-only NeoForge lifecycle entrypoint.
  *
- * This is not a pre-login enforcement hook. Never advertise the server as
- * beta-protected until a verified pre-join denial mechanism is installed.
+ * The PlayerNegotiationEvent is a pre-join handshake barrier. Verify the
+ * disconnect behavior on the exact NeoForge server build before deployment.
  */
 @Mod("mineruxbetaguard")
 public final class MineruxBetaGuardMod {
@@ -27,8 +29,27 @@ public final class MineruxBetaGuardMod {
         // A missing token or an invalid URL must prevent an apparently healthy
         // beta server from starting without its authorization backend.
         authorization = new AuthorizationService(ServerGuardConfig.fromEnvironment());
-        System.err.println("[Minerux Beta Guard] Backend configuration validated. "
-                + "WARNING: player login enforcement is NOT installed; do not open the beta.");
+        System.err.println("[Minerux Beta Guard] Backend configuration validated; negotiation access gate registered.");
+    }
+
+    /**
+     * Negotiation is paused until the backend check finishes. Deny on any
+     * missing profile, unavailable backend, invalid token, or denied grant.
+     * Requires Minecraft online-mode=true for authenticated UUIDs.
+     */
+    @SubscribeEvent
+    public void onPlayerNegotiation(PlayerNegotiationEvent event) {
+        var profile = event.getProfile();
+        var connection = event.getConnection();
+        if (authorization == null || profile == null || profile.getId() == null) {
+            connection.disconnect(Component.literal("Minerux: acceso beta no disponible."));
+            return;
+        }
+        event.enqueueWork(authorization.check(profile.getId()).thenAccept(allowed -> {
+            if (!allowed) {
+                connection.disconnect(Component.literal("Minerux: acceso beta denegado."));
+            }
+        }));
     }
 
     @SubscribeEvent
