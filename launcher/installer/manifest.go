@@ -2,6 +2,7 @@ package installer
 
 import (
  "encoding/json"
+ "encoding/hex"
  "errors"
  "fmt"
  "io"
@@ -13,7 +14,55 @@ import (
 )
 
 const maxManifestBytes = 1 << 20
-var safeFileName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
+var safeFileName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}package installer
+
+import (
+ "encoding/json"
+ "encoding/hex"
+ "errors"
+ "fmt"
+ "io"
+ "os"
+ "path/filepath"
+ "regexp"
+ "net/url"
+ "strings"
+)
+
+const maxManifestBytes = 1 << 20
+)
+
+func validWindowsName(name string) bool {
+ if !safeFileName.MatchString(name) || strings.HasSuffix(name,".") {return false}
+ stem:=strings.ToUpper(strings.SplitN(name,".",2)[0])
+ switch stem {
+ case "CON","PRN","AUX","NUL","COM1","COM2","COM3","COM4","COM5","COM6","COM7","COM8","COM9","LPT1","LPT2","LPT3","LPT4","LPT5","LPT6","LPT7","LPT8","LPT9":
+  return false
+ }
+ return true
+}
+
+func validateManifest(m Manifest) error {
+ if !validWindowsName(m.Version) || len(m.Files)==0 || len(m.Files)>256 {
+  return errors.New("manifest version or file count is invalid")
+ }
+ names:=make(map[string]bool,len(m.Files))
+ for _,file:=range m.Files {
+  if !validWindowsName(file.Name) {return errors.New("unsafe artifact filename")}
+  normalized:=strings.ToLower(file.Name)
+  if names[normalized] {return errors.New("duplicate artifact filename")}
+  names[normalized]=true
+  hash,err:=hex.DecodeString(file.SHA256)
+  if err!=nil || len(hash)!=32 || file.SHA256!=strings.ToLower(file.SHA256) {
+   return errors.New("invalid artifact SHA-256")
+  }
+  parsed,err:=url.Parse(file.URL)
+  if err!=nil || parsed.Scheme!="https" || parsed.Host=="" || parsed.User!=nil || parsed.Fragment!="" || parsed.Opaque!="" {
+   return errors.New("artifact URL must be HTTPS")
+  }
+ }
+ return nil
+}
 
 // Manifest is a locally supplied, trusted release manifest. Do not download
 // and trust a manifest from the same untrusted origin as its artifacts.
@@ -37,21 +86,7 @@ func ParseManifest(r io.Reader) (Manifest,error) {
  if err:=decoder.Decode(&m);err!=nil{return m,fmt.Errorf("invalid manifest: %w",err)}
  var trailing any
  if err:=decoder.Decode(&trailing);err!=io.EOF{return m,errors.New("manifest contains trailing data")}
- if !safeFileName.MatchString(m.Version) || len(m.Files)==0 || len(m.Files)>256 {
-  return m,errors.New("manifest version or file count is invalid")
- }
- names:=make(map[string]bool,len(m.Files))
- for _,file:=range m.Files {
-  if !safeFileName.MatchString(file.Name) || file.Name=="." || file.Name==".." || strings.HasSuffix(file.Name,".") {
-   return m,errors.New("unsafe artifact filename")
-  }
-  normalized:=strings.ToLower(file.Name)
-  if names[normalized] {return m,errors.New("duplicate artifact filename")}
-  names[normalized]=true
-  if len(file.SHA256)!=64 {return m,errors.New("artifact SHA-256 is required")}
-  parsed,err:=url.Parse(file.URL)
-  if err!=nil || parsed.Scheme!="https" || parsed.Host=="" || parsed.User!=nil || parsed.Fragment!="" {return m,errors.New("artifact URL must be HTTPS")}
- }
+ if err:=validateManifest(m);err!=nil{return m,err}
  return m,nil
 }
 
@@ -59,14 +94,7 @@ func ParseManifest(r io.Reader) (Manifest,error) {
 // On failure, previously installed versions are left untouched. The new
 // version is not marked active; the launcher must activate it separately.
 func InstallManifest(m Manifest,root string,download func(Artifact,string)error) (string,error) {
- if !safeFileName.MatchString(m.Version) || len(m.Files)==0 || len(m.Files)>256 {return "",errors.New("invalid manifest")}
- seen:=map[string]bool{}
- for _,f:=range m.Files {
-  if !safeFileName.MatchString(f.Name) || f.Name=="." || f.Name==".." || strings.HasSuffix(f.Name,".") {return "",errors.New("unsafe artifact filename")}
-  name:=strings.ToLower(f.Name)
-  if seen[name] {return "",errors.New("duplicate artifact filename")}
-  seen[name]=true
- }
+ if err:=validateManifest(m);err!=nil{return "",err}
  versionDir:=filepath.Join(root,"versions",m.Version)
  if err:=os.MkdirAll(versionDir,0700);err!=nil{return "",err}
  for _,f:=range m.Files {
