@@ -54,3 +54,7 @@ python3 server-guard/neoforge-mod/server_preflight.py /path/to/server.properties
 ```
 
 The script only reads configuration, does not print token values, and does not contact the backend. A passing result **does not** establish that the token is valid, that the NeoForge mod builds, or that the negotiation gate denies unauthorized players. The vanilla whitelist and backend beta grants must both be maintained until the full gate is verified.
+
+### Ambiguous properties are rejected
+
+The deployment preflight also rejects duplicate keys in `server.properties` (including duplicate `online-mode` and `white-list` settings). Remove duplicates rather than relying on a particular parser's last-value behavior. The check is conservative and does not replace a live server test.
