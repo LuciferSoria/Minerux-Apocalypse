@@ -27,7 +27,7 @@ El launcher instala los archivos en `%LOCALAPPDATA%\\MineruxApocalypse\\versions
 - No hay manifiesto de producción firmado o incorporado al launcher.
 - El manifiesto local se considera confiable: no aceptar archivos JSON de terceros desconocidos.
 - La instalación por versión todavía no es transaccional: un fallo puede dejar archivos ya descargados en la carpeta de esa versión. No se activa automáticamente ninguna versión.
-- Los archivos existentes no se reemplazan automáticamente; una segunda instalación de la misma versión puede fallar.
+- Los archivos existentes se reutilizan únicamente si su SHA-256 coincide con el manifiesto. Si un archivo está dañado o ha sido modificado, la instalación se detiene sin sobrescribirlo; para repararlo habrá que eliminarlo manualmente o implementar una reparación controlada.
 - La funcionalidad debe probarse en Windows antes de publicar un ejecutable.
 
 La compilación de desarrollo no constituye una versión jugable.
